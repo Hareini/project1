@@ -1,0 +1,83 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+
+# Load dataset
+file_path_ev = 'ev_charging_patterns.csv'
+df_ev = pd.read_csv(file_path_ev)
+
+# Data Cleaning (Check for duplicates)
+df_ev.drop_duplicates(inplace=True)
+
+# Exploratory Data Analysis (EDA)
+# 1. Distribution of Charging Duration
+plt.figure(figsize=(8, 5))
+sns.histplot(df_ev['Charging Duration (hours)'], kde=True, bins=30)
+plt.title('Distribution of Charging Duration (hours)')
+plt.xlabel('Charging Duration (hours)')
+plt.show()
+
+# 2. Energy Consumed by Charging Rate
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x='Charging Rate (kW)', y='Energy Consumed (kWh)', hue='Charger Type', data=df_ev, palette='cool')
+plt.title('Energy Consumed by Charging Rate')
+plt.show()
+
+# 3. Correlation Heatmap
+numeric_columns = df_ev.select_dtypes(include=['float64', 'int64']).columns
+plt.figure(figsize=(10, 8))
+corr = df_ev[numeric_columns].corr()
+sns.heatmap(corr, annot=True, fmt='.2f', cmap='coolwarm', linewidths=0.5)
+plt.title('Correlation Heatmap')
+plt.show()
+
+# 4. Average Charging Cost by Vehicle Model
+avg_cost_model = df_ev.groupby('Vehicle Model')['Charging Cost (USD)'].mean().sort_values()
+plt.figure(figsize=(12, 6))
+avg_cost_model.plot(kind='bar', color='teal')
+plt.title('Average Charging Cost by Vehicle Model')
+plt.xlabel('Vehicle Model')
+plt.ylabel('Average Charging Cost (USD)')
+plt.xticks(rotation=45)
+plt.show()
+
+# 5. Charging Cost vs Battery Capacity
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x='Battery Capacity (kWh)', y='Charging Cost (USD)', hue='Charger Type', data=df_ev, palette='viridis')
+plt.title('Charging Cost vs Battery Capacity')
+plt.show()
+
+# 6. State of Charge (Start vs End)
+plt.figure(figsize=(8, 5))
+sns.boxplot(data=df_ev[['State of Charge (Start %)', 'State of Charge (End %)']])
+plt.title('State of Charge: Start vs End')
+plt.ylabel('State of Charge (%)')
+plt.show()
+
+# Feature Selection and Encoding
+X = df_ev.drop(columns=['User ID', 'Charging Start Time', 'Charging End Time', 'Charging Station Location'])
+X = pd.get_dummies(X, drop_first=True)
+y = df_ev['User Type']  # Hypothetical target for classification
+
+# Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Model Building: Random Forest Classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predictions
+y_pred = model.predict(X_test)
+
+# Evaluation
+print('Classification Report:')
+print(classification_report(y_test, y_pred))
+
+print('Confusion Matrix:')
+plt.figure(figsize=(8, 6))
+sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, fmt='d', cmap='Blues')
+plt.title('Confusion Matrix')
+plt.show()
